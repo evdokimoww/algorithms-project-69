@@ -6,7 +6,10 @@ const search = (docs, word) => {
   const result = [];
 
   for (let i = 0; i < docs.length; i += 1) {
-    if (docs[i].text.replace(/[!"#$%&'()*+,-./:;<=>?@[\]^_`{|}~]/g, '').split(' ').includes(word)) {
+    const cleanString = docs[i].text.match(/\w+/g).map((el) => el.toLowerCase());
+    const cleanWord = word.match(/\w+/g)[0].toLowerCase();
+
+    if (cleanString.includes(cleanWord)) {
       result.push(docs[i].id);
     }
   }
