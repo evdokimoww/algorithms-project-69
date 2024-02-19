@@ -19,14 +19,14 @@ const search = (docs, searchString) => {
     };
 
     // находим количество употребления каждого слова в каждом документе
-    cleanText.forEach((el) => {
-      if (indexes[el]) {
-        indexes[el] = {
-          ...indexes[el],
-          [docs[i].id]: indexes[el][docs[i].id] ? indexes[el][docs[i].id] + 1 : 1,
+    cleanText.forEach((word) => {
+      if (indexes[word]) {
+        indexes[word] = {
+          ...indexes[word],
+          [docs[i].id]: indexes[word][docs[i].id] ? indexes[word][docs[i].id] + 1 : 1,
         };
       } else {
-        indexes[el] = { [docs[i].id]: 1 };
+        indexes[word] = { [docs[i].id]: 1 };
       }
     });
   }
@@ -36,22 +36,23 @@ const search = (docs, searchString) => {
 
   // оставляем только документы, содержащие хотя бы одно слово из поисковой строки
   // вид результата [ слово, { документ: количество повторений } ]
-  const result = Object.entries(indexes).filter((el) => cleanSearchString.includes(el[0]));
+  const result = Object.entries(indexes).filter(([word]) => cleanSearchString.includes(word));
 
   const tfIdfDocs = {};
 
-  result.forEach((el) => {
-    const elEntries = Object.entries(el[1]);
-    elEntries.forEach((doc) => {
-      const tf = doc[1] / wordDocCount[doc[0]];
-      const idf = Math.log(1 + (docs.length - elEntries.length + 1) / (elEntries.length + 0.5));
+  result.forEach(([, docsCounts]) => {
+    const entries = Object.entries(docsCounts);
+
+    entries.forEach(([docId, count]) => {
+      const tf = count / wordDocCount[docId];
+      const idf = Math.log(1 + (docs.length - entries.length + 1) / (entries.length + 0.5));
       const tfIdf = tf * idf;
 
-      tfIdfDocs[doc[0]] = tfIdfDocs[doc[0]] ? tfIdfDocs[doc[0]] + tfIdf : tfIdf;
+      tfIdfDocs[docId] = tfIdfDocs[docId] ? tfIdfDocs[docId] + tfIdf : tfIdf;
     });
   });
 
-  return Object.entries(tfIdfDocs).sort((a, b) => b[1] - a[1]).map((el) => el[0]);
+  return Object.entries(tfIdfDocs).sort((a, b) => b[1] - a[1]).map(([id]) => id);
 };
 
 export default search;
