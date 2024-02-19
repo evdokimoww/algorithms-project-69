@@ -1,32 +1,5 @@
+// избавление от лишних символов
 const getMatchedWordsArray = (text) => text.match(/\w+/g).map((el) => el.toLowerCase());
-
-const sortSearchResult = (a, b) => {
-  const aDocCount = a[1][0];
-  const bDocCount = b[1][0];
-
-  const aWordCount = a[1][1];
-  const bWordCount = b[1][1];
-
-  if (aDocCount > bDocCount) {
-    return -1;
-  }
-
-  if (aDocCount < bDocCount) {
-    return 1;
-  }
-
-  if (aDocCount === bDocCount) {
-    if (aWordCount > bWordCount) {
-      return -1;
-    }
-
-    if (aWordCount < bWordCount) {
-      return 1;
-    }
-  }
-
-  return 0;
-};
 
 const search = (docs, searchString) => {
   if (docs.length === 0) {
@@ -34,10 +7,18 @@ const search = (docs, searchString) => {
   }
 
   const indexes = {};
+  let wordDocCount = {};
 
   for (let i = 0; i < docs.length; i += 1) {
+    // избавляемся от лишних символов в документе
     const cleanText = getMatchedWordsArray(docs[i].text);
 
+    wordDocCount = {
+      ...wordDocCount,
+      [docs[i].id]: cleanText.length,
+    };
+
+    // находим количество употребления каждого слова в каждом документе
     cleanText.forEach((el) => {
       if (indexes[el]) {
         indexes[el] = {
@@ -50,22 +31,27 @@ const search = (docs, searchString) => {
     });
   }
 
+  // избавляемся от лишних символов в поисковой строке
   const cleanSearchString = getMatchedWordsArray(searchString);
+
+  // оставляем только документы, содержащие хотя бы одно слово из поисковой строки
+  // вид результата [ слово, { документ: количество повторений } ]
   const result = Object.entries(indexes).filter((el) => cleanSearchString.includes(el[0]));
 
-  const sorted = {};
+  const tfIdfDocs = {};
 
-  result.map((el) => el[1]).forEach((el) => {
-    Object.entries(el).forEach((el2) => {
-      if (sorted[el2[0]]) {
-        sorted[el2[0]] = [sorted[el2[0]][0] + 1, sorted[el2[0]][1] + el2[1]];
-      } else {
-        sorted[el2[0]] = [1, el2[1]];
-      }
+  result.forEach((el) => {
+    const elEntries = Object.entries(el[1]);
+    elEntries.forEach((doc) => {
+      const tf = doc[1] / wordDocCount[doc[0]];
+      const idf = Math.log(1 + (docs.length - elEntries.length + 1) / (elEntries.length + 0.5));
+      const tfIdf = tf * idf;
+
+      tfIdfDocs[doc[0]] = tfIdfDocs[doc[0]] ? tfIdfDocs[doc[0]] + tfIdf : tfIdf;
     });
   });
 
-  return Object.entries(sorted).sort(sortSearchResult).map((el) => el[0]);
+  return Object.entries(tfIdfDocs).sort((a, b) => b[1] - a[1]).map((el) => el[0]);
 };
 
 export default search;
